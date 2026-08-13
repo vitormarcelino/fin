@@ -46,6 +46,50 @@ export async function getMonthAggregates(userId: string, month: string): Promise
 }
 
 /**
+ * Totals per (type, classification) for the 6 months ending in `month`
+ * (inclusive) vs. the 6 months immediately before that — same shape and
+ * same single-round-trip FILTER technique as `getMonthAggregates`, just
+ * with 6-month windows instead of single months. Feeds the "Geral"
+ * overview page's period-over-period comparison via the same
+ * `calcMonthComparison` reducer used for the monthly dashboard. Always
+ * scoped by userId.
+ */
+export async function getSixMonthComparison(userId: string, month: string): Promise<MonthAggRow[]> {
+  const current = { start: monthDateRange(addMonths(month, -5)).start, end: monthDateRange(month).end };
+  const previous = {
+    start: monthDateRange(addMonths(month, -11)).start,
+    end: monthDateRange(addMonths(month, -6)).end,
+  };
+
+  const rows = await db
+    .select({
+      type: financialEntries.type,
+      classification: financialEntries.classification,
+      currentCents: sql<string>`coalesce(sum(${financialEntries.amountCents}) filter (
+        where ${financialEntries.date} >= ${current.start} and ${financialEntries.date} < ${current.end}
+      ), 0)`,
+      previousCents: sql<string>`coalesce(sum(${financialEntries.amountCents}) filter (
+        where ${financialEntries.date} >= ${previous.start} and ${financialEntries.date} < ${previous.end}
+      ), 0)`,
+    })
+    .from(financialEntries)
+    .where(
+      and(
+        eq(financialEntries.userId, userId),
+        sql`${financialEntries.date} >= ${previous.start} and ${financialEntries.date} < ${current.end}`,
+      ),
+    )
+    .groupBy(financialEntries.type, financialEntries.classification);
+
+  return rows.map((row) => ({
+    type: row.type,
+    classification: row.classification,
+    currentCents: Number(row.currentCents),
+    previousCents: Number(row.previousCents),
+  }));
+}
+
+/**
  * Per-month, per-type totals covering the 6 months ending in `month`
  * (inclusive) — feeds the income vs. expense trend chart. Always scoped by
  * userId.
@@ -73,13 +117,23 @@ export async function getSixMonthTypeTotals(userId: string, month: string): Prom
 export type TagExpenseSlice = { tagId: string | null; tagName: string; totalCents: number };
 
 /**
- * Expense totals by tag for `month`, most recent — err, largest — first,
- * plus a synthetic "Sem tag" bucket for expenses with no tags at all.
- * Always scoped by userId.
+ * Expense totals by tag for `month`, largest first, plus a synthetic
+ * "Sem tag" bucket for expenses with no tags at all. Always scoped by
+ * userId. Thin wrapper over `getExpenseByTagRange` for the single-month
+ * case used by the monthly dashboard.
  */
 export async function getExpenseByTag(userId: string, month: string): Promise<TagExpenseSlice[]> {
   const { start, end } = monthDateRange(month);
+  return getExpenseByTagRange(userId, start, end);
+}
 
+/**
+ * Expense totals by tag over an arbitrary [start, end) date range, largest
+ * first, plus a synthetic "Sem tag" bucket for expenses with no tags at
+ * all. Always scoped by userId. Used directly by the "Geral" overview page
+ * to aggregate tags across several months at once.
+ */
+export async function getExpenseByTagRange(userId: string, start: string, end: string): Promise<TagExpenseSlice[]> {
   const tagged = await db
     .select({
       tagId: tags.id,

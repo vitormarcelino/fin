@@ -13,6 +13,7 @@ export type EntryFilters = {
   type?: EntryType;
   classification?: EntryClassification;
   tagId?: string;
+  status?: "PENDING" | "PAID";
   /** "dateDesc" (default): most recent first. "dueDateAsc": due date
    *  ascending — Postgres sorts NULLs last on ASC, so undated entries fall
    *  to the end instead of the front. */
@@ -63,6 +64,9 @@ export async function getEntries(userId: string, filters: EntryFilters = {}): Pr
         db.select({ id: entryTags.entryId }).from(entryTags).where(eq(entryTags.tagId, filters.tagId)),
       ),
     );
+  }
+  if (filters.status) {
+    conditions.push(eq(financialEntries.status, filters.status));
   }
 
   const orderBy =

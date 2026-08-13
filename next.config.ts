@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   experimental: {
     useOffline: true,
   },
+  allowedDevOrigins: [
+    "highly-novel-lab.ngrok-free.app",
+  ],
   async headers() {
     return [
       {

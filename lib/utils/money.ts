@@ -56,12 +56,28 @@ export function parseAmountToCents(input: string): number | null {
   return cents;
 }
 
-/** Formats an integer number of cents as a BRL currency string. */
+/** Formats an integer number of cents as a BRL currency string.
+ *
+ * This implementation avoids Intl.NumberFormat so the exact same output is used
+ * on the server and in the browser, preventing hydration mismatches caused by
+ * runtime locale/ICU differences between environments.
+ */
 export function formatCentsToBRL(cents: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(cents / 100);
+  const negative = cents < 0;
+  const absolute = Math.abs(cents);
+  const intPart = Math.floor(absolute / 100);
+  const fracPart = String(absolute % 100).padStart(2, "0");
+
+  const formattedInt = String(intPart)
+    .split("")
+    .reverse()
+    .join("")
+    .match(/.{1,3}/g)
+    ?.map((group) => group.split("").reverse().join(""))
+    .reverse()
+    .join(".") ?? String(intPart);
+
+  return `${negative ? "-" : ""}R$ ${formattedInt},${fracPart}`;
 }
 
 /** Formats cents as a plain decimal string suitable for an input value, e.g. 123456 -> "1234.56". */

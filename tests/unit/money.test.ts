@@ -53,12 +53,15 @@ describe("parseAmountToCents", () => {
 
 describe("formatCentsToBRL", () => {
   it("formats cents as a BRL string", () => {
-    // Non-breaking space between the symbol and the number, as Intl produces.
-    expect(formatCentsToBRL(123456)).toBe("R$ 1.234,56");
+    expect(formatCentsToBRL(123456)).toBe("R$ 1.234,56");
   });
 
   it("formats zero", () => {
-    expect(formatCentsToBRL(0)).toBe("R$ 0,00");
+    expect(formatCentsToBRL(0)).toBe("R$ 0,00");
+  });
+
+  it("formats negative values deterministically", () => {
+    expect(formatCentsToBRL(-123456)).toBe("-R$ 1.234,56");
   });
 });
 

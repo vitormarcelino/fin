@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
-import { HomeIcon, ListIcon, PlusIcon, RecurringIcon, TagIcon } from "@/components/nav/nav-icons";
+import { CalendarIcon, OverviewIcon, PlusIcon, QueueIcon, SettingsIcon } from "@/components/nav/nav-icons";
 
 /**
  * Desktop-only sidebar nav (SaaS-style), `lg:` and up. Mobile keeps the
@@ -33,21 +33,21 @@ export function Sidebar({ username }: { username: string }) {
       </div>
 
       <nav className="mt-6 flex flex-col gap-1 px-3">
-        <SidebarLink href="/" label="Início" active={pathname === "/"}>
-          <HomeIcon />
+        <SidebarLink href="/overview" label="Geral" active={pathname.startsWith("/overview")}>
+          <OverviewIcon />
+        </SidebarLink>
+        <SidebarLink href="/" label="Mensal" active={pathname === "/"}>
+          <CalendarIcon />
+        </SidebarLink>
+        <SidebarLink href="/queue" label="Fila de pagamentos" active={pathname.startsWith("/queue")}>
+          <QueueIcon />
         </SidebarLink>
         <SidebarLink
-          href="/entries"
-          label="Lançamentos"
-          active={pathname.startsWith("/entries") && pathname !== "/entries/new"}
+          href="/settings"
+          label="Config"
+          active={pathname.startsWith("/settings") || pathname.startsWith("/recurring") || pathname.startsWith("/tags")}
         >
-          <ListIcon />
-        </SidebarLink>
-        <SidebarLink href="/recurring" label="Lançamentos fixos" active={pathname.startsWith("/recurring")}>
-          <RecurringIcon />
-        </SidebarLink>
-        <SidebarLink href="/tags" label="Tags" active={pathname.startsWith("/tags")}>
-          <TagIcon />
+          <SettingsIcon />
         </SidebarLink>
       </nav>
 

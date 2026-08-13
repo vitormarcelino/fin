@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addDays,
   addMonths,
   clampDayToMonth,
   formatDateLabel,
@@ -75,6 +76,28 @@ describe("formatMonthShortLabel", () => {
 describe("formatDateLabel", () => {
   it("formats an ISO date as dd/mm/yyyy", () => {
     expect(formatDateLabel("2026-08-05")).toBe("05/08/2026");
+  });
+});
+
+describe("addDays", () => {
+  it("adds within the same month", () => {
+    expect(addDays("2026-08-10", 5)).toBe("2026-08-15");
+  });
+
+  it("rolls over a month boundary", () => {
+    expect(addDays("2026-08-28", 5)).toBe("2026-09-02");
+  });
+
+  it("rolls over a year boundary", () => {
+    expect(addDays("2025-12-30", 5)).toBe("2026-01-04");
+  });
+
+  it("supports negative deltas", () => {
+    expect(addDays("2026-08-02", -5)).toBe("2026-07-28");
+  });
+
+  it("is a no-op for delta 0", () => {
+    expect(addDays("2026-08-13", 0)).toBe("2026-08-13");
   });
 });
 

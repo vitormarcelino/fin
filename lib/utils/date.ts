@@ -87,3 +87,13 @@ export function todayDateString(): string {
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+/** Adds `delta` days to a "YYYY-MM-DD" string (delta may be negative). Uses UTC internally so day-of-month rollovers land correctly regardless of the host's local timezone. */
+export function addDays(isoDate: string, delta: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + delta));
+  const ny = date.getUTCFullYear();
+  const nm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const nd = String(date.getUTCDate()).padStart(2, "0");
+  return `${ny}-${nm}-${nd}`;
+}

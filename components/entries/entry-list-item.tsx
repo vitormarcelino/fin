@@ -17,40 +17,36 @@ export function EntryListItem({ entry }: { entry: EntryWithTags }) {
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
-        className="flex w-full flex-col items-start justify-start gap-2 rounded-xl border border-black/10 p-4 text-left dark:border-white/15 active:opacity-70"
+        className="flex w-full items-start justify-between gap-3 rounded-xl border border-black/10 bg-white p-4 text-left active:opacity-70"
       >
-        <div className="flex w-full flex-col items-start justify-start gap-1 text-left">
-          <p className="m-0 block truncate text-left font-medium">{entry.description.trimStart()}</p>
-          <p className="m-0 block truncate text-left text-xs text-foreground/60">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-left text-[15px] font-medium text-slate-900">{entry.description.trimStart()}</p>
+          <p className="mt-1 truncate text-left text-xs text-slate-500">
             {formatDateLabel(entry.date)} · {entry.classification === "FIXED" ? "Fixo" : "Variável"}
             {entry.dueDate ? ` · Vence em ${formatDateLabel(entry.dueDate)}` : ""}
             {entry.tags.length > 0 ? ` · ${entry.tags.map((t) => t.name).join(", ")}` : ""}
           </p>
         </div>
-        <div className="flex w-full items-center justify-between gap-2">
+
+        <div className="ml-auto flex shrink-0 flex-col items-end gap-2">
           {amountCents === null ? (
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-400/10 dark:text-amber-400">
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
               Confirmar valor
             </span>
           ) : (
-            <span
-              className={`font-semibold ${
-                isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-              }`}
-            >
+            <span className={`text-sm font-semibold ${isIncome ? "text-emerald-600" : "text-red-600"}`}>
               {isIncome ? "+" : "-"} {formatCentsToBRL(amountCents)}
             </span>
           )}
+
+          <span
+            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+              isPaid ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {isPaid ? "Pago" : "Pendente"}
+          </span>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isPaid
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-400"
-          }`}
-        >
-          {isPaid ? "Pago" : "Pendente"}
-        </span>
       </button>
 
       {isModalOpen ? <EntryEditModal entry={entry} onClose={() => setIsModalOpen(false)} /> : null}
