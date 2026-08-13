@@ -125,21 +125,7 @@ export default async function DashboardPage({
           <FixedVariableChartLazy data={fixedVariableData} />
         </div>
       </section>
-
-      <div className="flex gap-3">
-        <Link
-          href="/entries/new"
-          className="flex h-11 flex-1 items-center justify-center rounded-xl bg-foreground text-sm font-medium text-background active:opacity-80"
-        >
-          Novo lançamento
-        </Link>
-        <Link
-          href="/entries"
-          className="flex h-11 flex-1 items-center justify-center rounded-xl border border-black/10 text-sm font-medium active:opacity-70 dark:border-white/15"
-        >
-          Ver lançamentos
-        </Link>
-      </div>
+      
     </div>
   );
 }
