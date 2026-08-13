@@ -1,0 +1,72 @@
+# Production stack: the app image built from ./Dockerfile + Postgres.
+#
+# Usage:
+#   cp .env.production.example .env.production   # fill in real secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env.production run --rm migrate
+#
+# --env-file is required: it's what resolves the ${...} substitutions below
+# (env_file: on a service only injects vars into that container, it does not
+# feed compose's own variable substitution — so it's not used here).
+#
+# This is a separate project ("fin-prod") from docker-compose.yml's dev
+# Postgres ("fin"), so the two stacks don't collide on container/volume names
+# if both happen to run on the same host.
+name: fin-prod
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: us-east1-docker.pkg.dev/vitormarcelino/fin/app:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}@postgres:5432/fin
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-fin_session}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER:?set PASSWORD_PEPPER in .env.production}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    # HEALTHCHECK is already baked into the image (see Dockerfile).
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: fin
+    volumes:
+      - fin_prod_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fin -d fin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No host port published in prod — only `app`/`migrate` reach it, over
+    # the compose network. For ad-hoc access use:
+    #   docker compose -f docker-compose.prod.yml exec postgres psql -U fin fin
+
+  # One-off migration runner. Not part of `up` (profile gated) — the prod
+  # image is intentionally slim and doesn't carry tsx/drizzle-kit, so this
+  # reuses the `builder` stage (full deps + source) instead. Run explicitly:
+  #   docker compose -f docker-compose.prod.yml --env-file .env.production \
+  #     run --rm migrate
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}@postgres:5432/fin
+    command: ["pnpm", "exec", "tsx", "lib/db/migrate.ts"]
+
+volumes:
+  fin_prod_postgres_data:

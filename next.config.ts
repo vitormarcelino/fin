@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Emit .next/standalone with only the traced files/deps needed to run
+  // `node server.js` — no node_modules or source copied into the runtime
+  // Docker image. See Dockerfile.
+  output: "standalone",
   experimental: {
     useOffline: true,
   },
