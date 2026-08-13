@@ -23,4 +23,27 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* In standalone iOS PWA mode, statusBarStyle "black-translucent" makes the
+     status bar overlay the web content instead of pushing it down, so the
+     notch/Dynamic Island would otherwise sit on top of whatever renders
+     first (offline banner, page header). env() resolves to 0 on
+     non-notched devices and outside standalone mode, so this is a no-op
+     everywhere else. Requires viewport-fit=cover, already set in
+     app/layout.tsx. */
+  padding-top: env(safe-area-inset-top);
+}
+
+/* iOS Safari zooms the viewport on focus of any input with a computed
+   font-size below 16px. Fixed size, not a Tailwind text-* class, so it wins
+   regardless of component-level sizing. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Safe-area padding for elements pinned to the bottom of the screen (bottom
+   nav) on notched/home-indicator iOS devices. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }
