@@ -28,8 +28,9 @@ function makeEntry(overrides: Partial<EntryWithTags>): EntryWithTags {
 describe("bucketPendingEntries", () => {
   it("buckets a past dueDate as overdue", () => {
     const entry = makeEntry({ dueDate: "2026-08-01" });
-    const { overdue, upcoming, other } = bucketPendingEntries([entry], TODAY, UPCOMING_UNTIL);
+    const { overdue, dueToday, upcoming, other } = bucketPendingEntries([entry], TODAY, UPCOMING_UNTIL);
     expect(overdue).toEqual([entry]);
+    expect(dueToday).toEqual([]);
     expect(upcoming).toEqual([]);
     expect(other).toEqual([]);
   });
@@ -40,11 +41,12 @@ describe("bucketPendingEntries", () => {
     expect(upcoming).toEqual([entry]);
   });
 
-  it("treats dueDate === today as upcoming, not overdue", () => {
+  it("treats dueDate === today as dueToday, not overdue or upcoming", () => {
     const entry = makeEntry({ dueDate: TODAY });
-    const { overdue, upcoming } = bucketPendingEntries([entry], TODAY, UPCOMING_UNTIL);
+    const { overdue, dueToday, upcoming } = bucketPendingEntries([entry], TODAY, UPCOMING_UNTIL);
     expect(overdue).toEqual([]);
-    expect(upcoming).toEqual([entry]);
+    expect(dueToday).toEqual([entry]);
+    expect(upcoming).toEqual([]);
   });
 
   it("treats dueDate === upcomingUntil as upcoming, not other", () => {
@@ -68,9 +70,19 @@ describe("bucketPendingEntries", () => {
 
   it("splits a mixed list into the right buckets", () => {
     const overdueEntry = makeEntry({ dueDate: "2026-07-01" });
+    const dueTodayEntry = makeEntry({ dueDate: TODAY });
     const upcomingEntry = makeEntry({ dueDate: "2026-08-14" });
     const otherEntry = makeEntry({ dueDate: null });
-    const result = bucketPendingEntries([overdueEntry, upcomingEntry, otherEntry], TODAY, UPCOMING_UNTIL);
-    expect(result).toEqual({ overdue: [overdueEntry], upcoming: [upcomingEntry], other: [otherEntry] });
+    const result = bucketPendingEntries(
+      [overdueEntry, dueTodayEntry, upcomingEntry, otherEntry],
+      TODAY,
+      UPCOMING_UNTIL,
+    );
+    expect(result).toEqual({
+      overdue: [overdueEntry],
+      dueToday: [dueTodayEntry],
+      upcoming: [upcomingEntry],
+      other: [otherEntry],
+    });
   });
 });

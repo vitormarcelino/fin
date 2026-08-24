@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth/session";
 import { logoutAction } from "@/lib/auth/actions";
-import { RecurringIcon, TagIcon } from "@/components/nav/nav-icons";
+import { ImportIcon, RecurringIcon, TagIcon } from "@/components/nav/nav-icons";
 
 /**
  * "Config" — general settings. Currently just a flat list of links to
@@ -22,6 +22,13 @@ export default async function SettingsPage() {
         </SettingsLink>
         <SettingsLink href="/tags" title="Tags" subtitle="Gerencie as tags usadas nos lançamentos">
           <TagIcon />
+        </SettingsLink>
+        <SettingsLink
+          href="/import"
+          title="Importar histórico"
+          subtitle="Importe gastos de meses anteriores via CSV ou XLSX"
+        >
+          <ImportIcon />
         </SettingsLink>
 
         <form action={logoutAction}>

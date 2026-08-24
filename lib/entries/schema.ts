@@ -1,23 +1,12 @@
 import { z } from "zod";
 import { parseAmountToCents } from "@/lib/utils/money";
+import { isValidCalendarDate } from "@/lib/utils/date";
 
 export const ENTRY_TYPES = ["INCOME", "EXPENSE"] as const;
 export const ENTRY_CLASSIFICATIONS = ["FIXED", "VARIABLE"] as const;
 
 export type EntryType = (typeof ENTRY_TYPES)[number];
 export type EntryClassification = (typeof ENTRY_CLASSIFICATIONS)[number];
-
-function isValidCalendarDate(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
-  const [, y, m, d] = match;
-  const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
-  return (
-    date.getUTCFullYear() === Number(y) &&
-    date.getUTCMonth() === Number(m) - 1 &&
-    date.getUTCDate() === Number(d)
-  );
-}
 
 const amountCentsSchema = z.preprocess((val) => {
   if (typeof val !== "string") return undefined;

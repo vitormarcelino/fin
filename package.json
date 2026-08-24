@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env lib/db/migrate.ts",
-    "user:create": "tsx --env-file=.env scripts/create-user.ts",
+    "user:create": "tsx scripts/create-user.ts",
     "pretest": "tsx --env-file=.env.test lib/db/migrate.ts",
     "test": "node --env-file=.env.test node_modules/vitest/vitest.mjs run",
     "test:watch": "node --env-file=.env.test node_modules/vitest/vitest.mjs"
@@ -18,12 +18,14 @@
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "drizzle-orm": "^0.45.2",
+    "exceljs": "^4.4.0",
     "next": "16.3.0",
     "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
+    "tsx": "^4.23.11",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -40,7 +42,6 @@
     "eslint-config-next": "16.3.0",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4",
-    "tsx": "^4.23.11",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"

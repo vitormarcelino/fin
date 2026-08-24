@@ -41,9 +41,23 @@ COPY . .
 RUN pnpm build
 
 ################################################################################
-# runner — minimal production image: just the standalone server, static
-# assets and public files. No source, no node_modules, no package
-# manager, no build tooling.
+# migrate-deps — production `dependencies` only (no devDependencies: no
+# eslint/tailwind/vitest/drizzle-kit/typescript). Exists because the runner
+# image below must be able to run `lib/db/migrate.ts` on its own — the prod
+# server has no source checkout, only this image + docker-compose.prod.yml.
+# next build's standalone trace only bundles what the app's own routes
+# import, and nothing in the app imports drizzle's migrator or tsx, so both
+# would be missing from .next/standalone otherwise.
+FROM base AS migrate-deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=fin-pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --prod --frozen-lockfile
+
+################################################################################
+# runner — production image: the standalone server, static assets, public
+# files, plus lib/, scripts/ and migrate-deps' node_modules so one-off
+# tasks (migrations, scripts/create-user.ts) can run from this same image,
+# no source checkout needed. No package manager, no build tooling.
 FROM node:24-alpine AS runner
 RUN apk add --no-cache tini
 
@@ -60,6 +74,18 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Merged in after standalone's own (trimmed) node_modules, so tsx and the
+# full drizzle-orm/postgres packages are guaranteed present for `migrate`
+# and for the scripts below.
+COPY --from=migrate-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Whole lib/ (not just lib/db) because scripts/*.ts reach into lib/auth,
+# lib/db/schema, etc. — plus scripts/ itself and tsconfig.json, which tsx
+# needs on disk to resolve the "@/*" path alias some of those files use.
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 
 USER nextjs
 EXPOSE 3000

@@ -23,7 +23,7 @@ export default async function QueuePage() {
     status: "PENDING",
     sort: "dueDateAsc",
   });
-  const { overdue, upcoming, other } = bucketPendingEntries(pending, today, upcomingUntil);
+  const { overdue, dueToday, upcoming } = bucketPendingEntries(pending, today, upcomingUntil);
 
   return (
     <div className="flex flex-col gap-6 p-4 pb-24 lg:pb-6">
@@ -32,9 +32,16 @@ export default async function QueuePage() {
         <p className="text-sm text-foreground/60">Despesas pendentes, de todos os meses.</p>
       </div>
 
+      {overdue.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold text-red-600 dark:text-red-400">Atrasados</h2>
+          <EntryList entries={overdue} emptyMessage="Nenhuma despesa pendente atrasada." />
+        </section>
+      )}
+
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-red-600 dark:text-red-400">Atrasados</h2>
-        <EntryList entries={overdue} emptyMessage="Nenhuma despesa pendente atrasada." />
+        <h2 className="text-sm font-semibold text-amber-600 dark:text-amber-400">Vencimento hoje</h2>
+        <EntryList entries={dueToday} emptyMessage="Nenhuma despesa vence hoje." />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -42,11 +49,6 @@ export default async function QueuePage() {
           Próximos {UPCOMING_WINDOW_DAYS} dias
         </h2>
         <EntryList entries={upcoming} emptyMessage="Nenhuma despesa pendente para os próximos dias." />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-foreground/70">Outros pendentes</h2>
-        <EntryList entries={other} emptyMessage="Nenhuma outra despesa pendente." />
       </section>
     </div>
   );

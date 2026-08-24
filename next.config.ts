@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     useOffline: true,
+    serverActions: {
+      // Default is 1MB; the history-import Server Action accepts an
+      // uploaded CSV/XLSX file, which can exceed that.
+      bodySizeLimit: "5mb",
+    },
   },
   allowedDevOrigins: [
     "highly-novel-lab.ngrok-free.app",

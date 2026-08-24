@@ -1,33 +1,39 @@
-# Production stack: the app image built from ./Dockerfile + Postgres.
+# Production stack: pre-built app image (pulled, not built here) + Postgres.
 #
 # Usage:
-#   cp .env.production.example .env.production   # fill in real secrets
-#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-#   docker compose -f docker-compose.prod.yml --env-file .env.production run --rm migrate
+#   cp .env.production.example .env   # fill in real secrets
+#   docker compose -f docker-compose.prod.yml pull app
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml run --rm migrate
 #
-# --env-file is required: it's what resolves the ${...} substitutions below
-# (env_file: on a service only injects vars into that container, it does not
-# feed compose's own variable substitution — so it's not used here).
+# No --env-file flag needed: Compose loads ./.env by default and uses it to
+# resolve the ${...} substitutions below (env_file: on a service only
+# injects vars into that container, it does not feed compose's own variable
+# substitution — so it's not used here).
+#
+# Both `app` and `migrate` only reference an image (DOCKER_IMAGE:IMAGE_TAG) —
+# it must already be built and pushed (e.g. by CI) before `up`/`run`. No
+# source checkout is needed on this host: the image itself carries what
+# `lib/db/migrate.ts` needs (tsx, drizzle-orm, postgres — see Dockerfile's
+# `migrate-deps` stage) alongside the app.
 #
 # This is a separate project ("fin-prod") from docker-compose.yml's dev
 # Postgres ("fin"), so the two stacks don't collide on container/volume names
-# if both happen to run on the same host.
+# if both happen to run on the same host. Run this stack on a host with its
+# own ./.env holding the production values — don't mix it with a dev checkout.
 name: fin-prod
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: us-east1-docker.pkg.dev/vitormarcelino/fin/app:latest
+    image: ${DOCKER_IMAGE:-us-east1-docker.pkg.dev/vitormarcelino/fin/app}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}@postgres:5432/fin
+      DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/fin
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-fin_session}
-      PASSWORD_PEPPER: ${PASSWORD_PEPPER:?set PASSWORD_PEPPER in .env.production}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER:?set PASSWORD_PEPPER in .env}
     ports:
       - "${APP_PORT:-3000}:3000"
     # HEALTHCHECK is already baked into the image (see Dockerfile).
@@ -37,7 +43,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: fin
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: fin
     volumes:
       - fin_prod_postgres_data:/var/lib/postgresql/data
@@ -50,23 +56,18 @@ services:
     # the compose network. For ad-hoc access use:
     #   docker compose -f docker-compose.prod.yml exec postgres psql -U fin fin
 
-  # One-off migration runner. Not part of `up` (profile gated) — the prod
-  # image is intentionally slim and doesn't carry tsx/drizzle-kit, so this
-  # reuses the `builder` stage (full deps + source) instead. Run explicitly:
-  #   docker compose -f docker-compose.prod.yml --env-file .env.production \
-  #     run --rm migrate
+  # One-off migration runner, same image as `app`. Not part of `up` (profile
+  # gated) — run explicitly:
+  #   docker compose -f docker-compose.prod.yml run --rm migrate
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
+    image: ${DOCKER_IMAGE:-us-east1-docker.pkg.dev/vitormarcelino/fin/app}:${IMAGE_TAG:-latest}
     profiles: ["tools"]
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}@postgres:5432/fin
-    command: ["pnpm", "exec", "tsx", "lib/db/migrate.ts"]
+      DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/fin
+    command: ["npx", "tsx", "lib/db/migrate.ts"]
 
 volumes:
   fin_prod_postgres_data:
