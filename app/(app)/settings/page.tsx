@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/auth/session";
 import { logoutAction } from "@/lib/auth/actions";
 import { ImportIcon, RecurringIcon, TagIcon } from "@/components/nav/nav-icons";
+import { PushManager } from "@/components/pwa/push-manager";
 
 /**
  * "Config" — general settings. Currently just a flat list of links to
@@ -30,6 +31,8 @@ export default async function SettingsPage() {
         >
           <ImportIcon />
         </SettingsLink>
+
+        <PushManager />
 
         <form action={logoutAction}>
           <button

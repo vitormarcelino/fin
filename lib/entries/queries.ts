@@ -83,6 +83,16 @@ export async function getEntries(userId: string, filters: EntryFilters = {}): Pr
   return attachTags(userId, rows);
 }
 
+/** All PENDING entries due on exactly this date, across every user — used
+ *  by the daily due-date notification job. Unlike getEntries, intentionally
+ *  not scoped to a single user. */
+export async function getEntriesDueOn(dueDate: string): Promise<FinancialEntry[]> {
+  return db
+    .select()
+    .from(financialEntries)
+    .where(and(eq(financialEntries.dueDate, dueDate), eq(financialEntries.status, "PENDING")));
+}
+
 /** A single entry, only if it belongs to the given user. */
 export async function getEntryById(userId: string, id: string): Promise<EntryWithTags | null> {
   const rows = await db

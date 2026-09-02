@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   addDays,
   addMonths,
@@ -8,6 +8,7 @@ import {
   formatMonthShortLabel,
   isValidMonthString,
   monthDateRange,
+  todayInTimeZone,
 } from "@/lib/utils/date";
 
 describe("isValidMonthString", () => {
@@ -98,6 +99,33 @@ describe("addDays", () => {
 
   it("is a no-op for delta 0", () => {
     expect(addDays("2026-08-13", 0)).toBe("2026-08-13");
+  });
+});
+
+describe("todayInTimeZone", () => {
+  it("returns a well-formed YYYY-MM-DD matching an equivalent Intl computation", () => {
+    const expected = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    expect(todayInTimeZone("America/Sao_Paulo")).toBe(expected);
+    expect(todayInTimeZone("America/Sao_Paulo")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("can disagree with UTC's date near the day boundary", () => {
+    // America/Sao_Paulo is behind UTC, so a fixed instant close to UTC
+    // midnight still falls on the previous day in Brazil.
+    const utcMidnight = new Date("2026-08-05T01:00:00.000Z");
+    vi.useFakeTimers();
+    vi.setSystemTime(utcMidnight);
+    try {
+      expect(todayInTimeZone("UTC")).toBe("2026-08-05");
+      expect(todayInTimeZone("America/Sao_Paulo")).toBe("2026-08-04");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

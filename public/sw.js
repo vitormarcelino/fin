@@ -78,3 +78,38 @@ self.addEventListener("fetch", (event) => {
   // Everything else (RSC data fetches, API calls, etc.) passes through
   // untouched — no caching, no offline fallback.
 });
+
+// Push notifications (iOS 16.4+ requires the app to be added to the home
+// screen for this to fire at all). The payload is always our own JSON
+// (see lib/push/send.ts) — never render untrusted push data.
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    return;
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title ?? "Fin", {
+      body: payload.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+    }),
+  );
+});
+
+// Focuses an already-open tab instead of always opening a new one.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) return client.focus();
+      }
+      return self.clients.openWindow("/");
+    }),
+  );
+});

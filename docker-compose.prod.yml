@@ -34,6 +34,13 @@ services:
       DATABASE_URL: postgresql://fin:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/fin
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-fin_session}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:?set PASSWORD_PEPPER in .env}
+      # NEXT_PUBLIC_VAPID_PUBLIC_KEY only needs to match what was baked into
+      # the image at build time (see build.sh) — passed again here so the
+      # server-side webpush.setVapidDetails() call in lib/push/send.ts can
+      # read it too, alongside the private half which is runtime-only.
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     ports:
       - "${APP_PORT:-3000}:3000"
     # HEALTHCHECK is already baked into the image (see Dockerfile).

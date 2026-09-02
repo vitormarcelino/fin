@@ -22,8 +22,8 @@ describe("parseAmountToCents", () => {
     expect(parseAmountToCents("10.5")).toBe(1050);
   });
 
-  it("rejects zero", () => {
-    expect(parseAmountToCents("0")).toBeNull();
+  it("accepts zero", () => {
+    expect(parseAmountToCents("0")).toBe(0);
   });
 
   it("rejects negative amounts", () => {

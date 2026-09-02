@@ -1,0 +1,2 @@
+ALTER TABLE "financial_entries" DROP CONSTRAINT "chk_amount_positive";--> statement-breakpoint
+ALTER TABLE "financial_entries" ADD CONSTRAINT "chk_amount_nonnegative" CHECK ("financial_entries"."amount_cents" IS NULL OR ("financial_entries"."amount_cents" >= 0 AND "financial_entries"."amount_cents" <= 999999999));

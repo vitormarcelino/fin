@@ -132,8 +132,8 @@ export const financialEntries = pgTable(
     index("idx_entries_user_type").on(table.userId, table.type),
     index("idx_entries_recurring_entry_id").on(table.recurringEntryId),
     check(
-      "chk_amount_positive",
-      sql`${table.amountCents} IS NULL OR (${table.amountCents} > 0 AND ${table.amountCents} <= 999999999)`,
+      "chk_amount_nonnegative",
+      sql`${table.amountCents} IS NULL OR (${table.amountCents} >= 0 AND ${table.amountCents} <= 999999999)`,
     ),
   ],
 );
@@ -190,6 +190,42 @@ export const recurringEntryTags = pgTable(
   ],
 );
 
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // The Push API endpoint URL issued by the browser's push service — the
+    // real identity of a subscribed device/browser install. Globally
+    // unique (not per-user): re-subscribing the same device just updates
+    // its keys in place instead of creating a duplicate row.
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_push_subscriptions_user").on(table.userId)],
+);
+
+// One row per (job, day) it has run — a claim table for scheduled jobs.
+// Inserting is how a job proves it's the first tick to handle that day;
+// ON CONFLICT DO NOTHING makes re-checking within the same day a no-op,
+// which matters because the scheduler polls every minute and the process
+// can restart mid-run (e.g. during a deploy).
+export const jobRuns = pgTable(
+  "job_runs",
+  {
+    jobName: text("job_name").notNull(),
+    ranOn: date("ran_on", { mode: "string" }).notNull(),
+    ranAt: timestamp("ran_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.jobName, table.ranOn] })],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -200,3 +236,6 @@ export type EntryTag = typeof entryTags.$inferSelect;
 export type RecurringEntry = typeof recurringEntries.$inferSelect;
 export type NewRecurringEntry = typeof recurringEntries.$inferInsert;
 export type RecurringEntryTag = typeof recurringEntryTags.$inferSelect;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
+export type JobRun = typeof jobRuns.$inferSelect;

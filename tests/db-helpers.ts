@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import {
   entryTags,
   financialEntries,
+  jobRuns,
+  pushSubscriptions,
   recurringEntries,
   recurringEntryTags,
   sessions,
@@ -13,11 +15,12 @@ import { hashPassword } from "@/lib/auth/password";
 /**
  * Wipes all app tables. Order matters only for readability — every FK here
  * cascades from `users`, but being explicit keeps this correct even if that
- * ever changes.
+ * ever changes. `job_runs` has no FK to `users` at all (it's a scheduler
+ * claim table, not user data) but still needs wiping between tests.
  */
 export async function truncateAll() {
   await db.execute(
-    `TRUNCATE TABLE entry_tags, financial_entries, recurring_entry_tags, recurring_entries, tags, sessions, users RESTART IDENTITY CASCADE`,
+    `TRUNCATE TABLE entry_tags, financial_entries, recurring_entry_tags, recurring_entries, push_subscriptions, job_runs, tags, sessions, users RESTART IDENTITY CASCADE`,
   );
 }
 
@@ -38,4 +41,15 @@ export async function createTestUser(overrides: { username?: string; email?: str
   return { ...user, plaintextPassword: password };
 }
 
-export { db, users, sessions, financialEntries, tags, entryTags, recurringEntries, recurringEntryTags };
+export {
+  db,
+  users,
+  sessions,
+  financialEntries,
+  tags,
+  entryTags,
+  recurringEntries,
+  recurringEntryTags,
+  pushSubscriptions,
+  jobRuns,
+};

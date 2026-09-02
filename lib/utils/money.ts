@@ -5,12 +5,13 @@
  * of currency amounts.
  */
 
-const MAX_CENTS = 999_999_999; // matches the chk_amount_positive DB constraint
+const MAX_CENTS = 999_999_999; // matches the chk_amount_nonnegative DB constraint
 
 /**
  * Parses a user-typed amount (accepts "1234,56", "1234.56", "1234", with
  * optional thousands separators) into an integer number of cents.
- * Returns null if the input isn't a valid positive amount.
+ * Returns null if the input isn't a valid non-negative amount. Zero is
+ * allowed (e.g. a free sample, a fee waived down to nothing).
  */
 export function parseAmountToCents(input: string): number | null {
   const trimmed = input.trim();
@@ -49,7 +50,7 @@ export function parseAmountToCents(input: string): number | null {
 
   const cents = Number(intPart) * 100 + Number(fracPadded);
 
-  if (!Number.isSafeInteger(cents) || cents <= 0 || cents > MAX_CENTS) {
+  if (!Number.isSafeInteger(cents) || cents < 0 || cents > MAX_CENTS) {
     return null;
   }
 

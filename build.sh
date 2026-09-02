@@ -41,7 +41,9 @@ if [ "${IMAGE_TAG}" != "latest" ] && [ "${ALSO_TAG_LATEST}" = "true" ]; then
 fi
 
 echo "==> Building ${image}"
-docker build -t "${image}" .
+docker build \
+  --build-arg "NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}" \
+  -t "${image}" .
 
 if [ "${tag_latest_too}" = "true" ]; then
   echo "==> Tagging ${latest}"

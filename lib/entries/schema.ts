@@ -12,7 +12,7 @@ const amountCentsSchema = z.preprocess((val) => {
   if (typeof val !== "string") return undefined;
   const cents = parseAmountToCents(val);
   return cents ?? undefined;
-}, z.number("Informe um valor válido maior que zero.").int().positive().max(999_999_999, "Valor muito alto."));
+}, z.number("Informe um valor válido.").int().nonnegative().max(999_999_999, "Valor muito alto."));
 
 export const entryFormSchema = z.object({
   type: z.enum(ENTRY_TYPES, { message: "Selecione receita ou despesa." }),

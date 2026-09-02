@@ -36,6 +36,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG DATABASE_URL=postgresql://build:build@localhost:5432/build
 ENV DATABASE_URL=${DATABASE_URL}
 
+# NEXT_PUBLIC_ vars are baked into the client bundle at build time (unlike
+# DATABASE_URL above, which is server-only and re-read from the real
+# runtime env). A real key must be passed via --build-arg for push
+# notifications (components/pwa/push-manager.tsx) to work in the built
+# image — see build.sh.
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build

@@ -33,7 +33,7 @@ describe("isUniqueViolation", () => {
     const user = await createTestUser();
     let caught: unknown;
     try {
-      // Violates chk_amount_positive, not a unique constraint (code 23514, not 23505).
+      // Violates chk_amount_nonnegative, not a unique constraint (code 23514, not 23505).
       await db.execute(
         `INSERT INTO financial_entries (user_id, type, classification, description, amount_cents, date)
          VALUES ('${user.id}', 'EXPENSE', 'VARIABLE', 'bad amount', -100, '2026-01-01')`,

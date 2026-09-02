@@ -56,7 +56,7 @@ describe("createEntry", () => {
     expect(Number.isInteger(row.amountCents)).toBe(true);
   });
 
-  it("rejects a zero/negative amount at the DB check constraint if ever bypassed", async () => {
+  it("rejects a negative amount at the DB check constraint if ever bypassed", async () => {
     const user = await createTestUser();
     let caught: unknown;
     try {
@@ -65,13 +65,29 @@ describe("createEntry", () => {
         type: "EXPENSE",
         classification: "VARIABLE",
         description: "bad",
-        amountCents: 0,
+        amountCents: -1,
         date: "2026-08-05",
       });
     } catch (err) {
       caught = err;
     }
     expect(caught).toBeDefined();
+  });
+
+  it("allows a zero amount — e.g. a fee waived down to nothing", async () => {
+    const user = await createTestUser();
+    const [row] = await db
+      .insert(financialEntries)
+      .values({
+        userId: user.id,
+        type: "EXPENSE",
+        classification: "VARIABLE",
+        description: "free sample",
+        amountCents: 0,
+        date: "2026-08-05",
+      })
+      .returning();
+    expect(row.amountCents).toBe(0);
   });
 
   it("allows a null amount — a pending entry awaiting confirmation", async () => {

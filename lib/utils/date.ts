@@ -101,6 +101,21 @@ export function todayDateString(): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Today as "YYYY-MM-DD" in an explicit IANA timezone — independent of the
+ *  host/container's local timezone (the Docker image has none configured
+ *  and defaults to UTC). Used by the due-date notification scheduler so
+ *  "today" and "9am" are evaluated in Brazil time regardless of where the
+ *  server runs. */
+export function todayInTimeZone(timeZone: string): string {
+  // en-CA formats as "YYYY-MM-DD" directly.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 /** Adds `delta` days to a "YYYY-MM-DD" string (delta may be negative). Uses UTC internally so day-of-month rollovers land correctly regardless of the host's local timezone. */
 export function addDays(isoDate: string, delta: number): string {
   const [y, m, d] = isoDate.split("-").map(Number);
