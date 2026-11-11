@@ -22,6 +22,7 @@ function revalidateEntryPaths() {
   revalidatePath("/");
   revalidatePath("/entries");
   revalidatePath("/tags");
+  revalidatePath("/recurring/[id]", "page");
 }
 
 export async function createEntry(
@@ -41,7 +42,7 @@ export async function createEntry(
 
   const [created] = await db
     .insert(financialEntries)
-    .values({ ...entry, userId, status: "PENDING" })
+    .values({ ...entry, userId })
     .returning({ id: financialEntries.id });
 
   if (finalTagIds.length > 0) {

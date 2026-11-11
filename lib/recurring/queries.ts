@@ -1,8 +1,11 @@
 import "server-only";
 
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { monthDateRange } from "@/lib/utils/date";
+import type { HistoryEntry } from "@/lib/recurring/history";
 import {
+  financialEntries,
   recurringEntries,
   recurringEntryTags,
   tags,
@@ -77,4 +80,30 @@ export async function listActiveRecurringEntries(
     .where(and(eq(recurringEntries.userId, userId), eq(recurringEntries.active, true)));
 
   return attachTags(userId, rows);
+}
+
+export async function getRecurringEntryHistory(
+  userId: string,
+  recurringEntryId: string,
+  fromMonth: string,
+  toMonth: string,
+): Promise<HistoryEntry[]> {
+  return db
+    .select({
+      id: financialEntries.id,
+      date: financialEntries.date,
+      dueDate: financialEntries.dueDate,
+      amountCents: financialEntries.amountCents,
+      status: financialEntries.status,
+    })
+    .from(financialEntries)
+    .where(
+      and(
+        eq(financialEntries.userId, userId),
+        eq(financialEntries.recurringEntryId, recurringEntryId),
+        gte(financialEntries.date, monthDateRange(fromMonth).start),
+        lt(financialEntries.date, monthDateRange(toMonth).end),
+      ),
+    )
+    .orderBy(desc(financialEntries.date));
 }

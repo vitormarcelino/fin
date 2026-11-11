@@ -1,4 +1,19 @@
-import type { Ref } from "react";
+"use client";
+
+import { useState, type Ref } from "react";
+import { formatCentsToBRL, parseAmountToCents } from "@/lib/utils/money";
+
+const MAX_DIGITS = 9;
+
+function formatCents(cents: number): string {
+  return formatCentsToBRL(cents).replace("R$ ", "");
+}
+
+function initialDisplay(defaultValue?: string): string {
+  if (!defaultValue) return "";
+  const cents = parseAmountToCents(defaultValue);
+  return cents === null ? "" : formatCents(cents);
+}
 
 export function AmountInput({
   defaultValue,
@@ -6,11 +21,23 @@ export function AmountInput({
   ref,
 }: {
   defaultValue?: string;
-  /** Set to false when the amount may legitimately be left blank (e.g. a
-   *  recurring template with a variable amount, confirmed per instance). */
   required?: boolean;
   ref?: Ref<HTMLInputElement>;
 }) {
+  const [display, setDisplay] = useState(() => initialDisplay(defaultValue));
+
+  function handleChange(raw: string) {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.replace(/^0+/, "").length > MAX_DIGITS) return;
+    const cents = Number(digits || "0");
+    const isDeleting = raw.length < display.length;
+    if (!digits || (cents === 0 && isDeleting)) {
+      setDisplay("");
+      return;
+    }
+    setDisplay(formatCents(cents));
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="amount" className="text-sm font-medium">
@@ -25,12 +52,13 @@ export function AmountInput({
           id="amount"
           name="amount"
           type="text"
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           placeholder="0,00"
-          defaultValue={defaultValue}
+          value={display}
+          onChange={(e) => handleChange(e.target.value)}
           required={required}
-          className="h-12 w-full rounded-xl border border-black/10 dark:border-white/15 bg-transparent pl-11 pr-4 text-base outline-none focus:border-foreground/40"
+          className="h-12 w-full rounded-xl border border-black/10 dark:border-white/15 bg-transparent pl-11 pr-4 text-base tabular-nums outline-none focus:border-foreground/40"
         />
       </div>
     </div>

@@ -115,3 +115,34 @@ export function buildFixedVariablePoints(current: MonthTotals): FixedVariablePoi
     { category: "Receitas", fixedCents: current.fixedIncomeCents, variableCents: current.variableIncomeCents },
   ];
 }
+
+export type MonthlyAverages = { incomeCents: number; expenseCents: number; balanceCents: number };
+
+export function calcMonthlyAverages(totals: MonthTotals, monthCount: number): MonthlyAverages {
+  if (monthCount <= 0) return { incomeCents: 0, expenseCents: 0, balanceCents: 0 };
+  return {
+    incomeCents: Math.round(totals.incomeCents / monthCount),
+    expenseCents: Math.round(totals.expenseCents / monthCount),
+    balanceCents: Math.round(totals.balanceCents / monthCount),
+  };
+}
+
+export type ClassificationMonthTotal = { month: string; classification: EntryClassification; totalCents: number };
+
+export type ClassificationMonthPoint = { month: string; fixedCents: number; variableCents: number };
+
+export function buildClassificationSeries(
+  rows: ClassificationMonthTotal[],
+  months: string[],
+): ClassificationMonthPoint[] {
+  const byMonth = new Map<string, ClassificationMonthPoint>(
+    months.map((month) => [month, { month, fixedCents: 0, variableCents: 0 }]),
+  );
+  for (const row of rows) {
+    const point = byMonth.get(row.month);
+    if (!point) continue;
+    if (row.classification === "FIXED") point.fixedCents += row.totalCents;
+    else point.variableCents += row.totalCents;
+  }
+  return months.map((month) => byMonth.get(month)!);
+}

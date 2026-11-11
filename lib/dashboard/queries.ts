@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { entryTags, financialEntries, tags } from "@/lib/db/schema";
-import { addMonths, monthDateRange } from "@/lib/utils/date";
+import { entryTags, financialEntries, recurringEntries, tags } from "@/lib/db/schema";
+import { addMonths, monthDateRange, monthsBetween } from "@/lib/utils/date";
 import type { MonthAggRow, MonthlyTypeTotal } from "@/lib/dashboard/calc";
 
 /**
@@ -55,10 +55,15 @@ export async function getMonthAggregates(userId: string, month: string): Promise
  * scoped by userId.
  */
 export async function getSixMonthComparison(userId: string, month: string): Promise<MonthAggRow[]> {
-  const current = { start: monthDateRange(addMonths(month, -5)).start, end: monthDateRange(month).end };
+  return getRangeComparison(userId, addMonths(month, -5), month);
+}
+
+export async function getRangeComparison(userId: string, from: string, to: string): Promise<MonthAggRow[]> {
+  const length = monthsBetween(from, to);
+  const current = { start: monthDateRange(from).start, end: monthDateRange(to).end };
   const previous = {
-    start: monthDateRange(addMonths(month, -11)).start,
-    end: monthDateRange(addMonths(month, -6)).end,
+    start: monthDateRange(addMonths(from, -length)).start,
+    end: monthDateRange(from).start,
   };
 
   const rows = await db
@@ -95,8 +100,16 @@ export async function getSixMonthComparison(userId: string, month: string): Prom
  * userId.
  */
 export async function getSixMonthTypeTotals(userId: string, month: string): Promise<MonthlyTypeTotal[]> {
-  const start = monthDateRange(addMonths(month, -5)).start;
-  const end = monthDateRange(month).end;
+  return getMonthlyTypeTotalsRange(userId, addMonths(month, -5), month);
+}
+
+export async function getMonthlyTypeTotalsRange(
+  userId: string,
+  from: string,
+  to: string,
+): Promise<MonthlyTypeTotal[]> {
+  const start = monthDateRange(from).start;
+  const end = monthDateRange(to).end;
   const monthExpr = sql<string>`to_char(date_trunc('month', ${financialEntries.date}), 'YYYY-MM')`;
 
   const rows = await db
@@ -179,4 +192,115 @@ export async function getExpenseByTagRange(userId: string, start: string, end: s
   }
 
   return slices;
+}
+
+export type MonthlyClassificationTotal = { month: string; classification: "FIXED" | "VARIABLE"; totalCents: number };
+
+export async function getMonthlyExpenseByClassification(
+  userId: string,
+  from: string,
+  to: string,
+): Promise<MonthlyClassificationTotal[]> {
+  const monthExpr = sql<string>`to_char(date_trunc('month', ${financialEntries.date}), 'YYYY-MM')`;
+
+  const rows = await db
+    .select({
+      month: monthExpr,
+      classification: financialEntries.classification,
+      totalCents: sql<string>`coalesce(sum(${financialEntries.amountCents}), 0)`,
+    })
+    .from(financialEntries)
+    .where(
+      and(
+        eq(financialEntries.userId, userId),
+        eq(financialEntries.type, "EXPENSE"),
+        gte(financialEntries.date, monthDateRange(from).start),
+        lt(financialEntries.date, monthDateRange(to).end),
+      ),
+    )
+    .groupBy(monthExpr, financialEntries.classification);
+
+  return rows.map((row) => ({
+    month: row.month,
+    classification: row.classification,
+    totalCents: Number(row.totalCents),
+  }));
+}
+
+export type RecurringExpenseRank = {
+  recurringEntryId: string;
+  description: string;
+  totalCents: number;
+  occurrences: number;
+};
+
+export async function getTopRecurringExpenses(
+  userId: string,
+  from: string,
+  to: string,
+  limit = 10,
+): Promise<RecurringExpenseRank[]> {
+  const total = sql<string>`sum(${financialEntries.amountCents})`;
+
+  const rows = await db
+    .select({
+      recurringEntryId: recurringEntries.id,
+      description: recurringEntries.description,
+      totalCents: total,
+      occurrences: sql<string>`count(${financialEntries.amountCents})`,
+    })
+    .from(financialEntries)
+    .innerJoin(recurringEntries, eq(financialEntries.recurringEntryId, recurringEntries.id))
+    .where(
+      and(
+        eq(financialEntries.userId, userId),
+        eq(recurringEntries.userId, userId),
+        eq(financialEntries.type, "EXPENSE"),
+        isNotNull(financialEntries.amountCents),
+        gte(financialEntries.date, monthDateRange(from).start),
+        lt(financialEntries.date, monthDateRange(to).end),
+      ),
+    )
+    .groupBy(recurringEntries.id, recurringEntries.description)
+    .orderBy(desc(total))
+    .limit(limit);
+
+  return rows.map((row) => ({
+    recurringEntryId: row.recurringEntryId,
+    description: row.description,
+    totalCents: Number(row.totalCents),
+    occurrences: Number(row.occurrences),
+  }));
+}
+
+export type OneOffExpense = { id: string; description: string; date: string; amountCents: number };
+
+export async function getTopOneOffExpenses(
+  userId: string,
+  from: string,
+  to: string,
+  limit = 10,
+): Promise<OneOffExpense[]> {
+  const rows = await db
+    .select({
+      id: financialEntries.id,
+      description: financialEntries.description,
+      date: financialEntries.date,
+      amountCents: financialEntries.amountCents,
+    })
+    .from(financialEntries)
+    .where(
+      and(
+        eq(financialEntries.userId, userId),
+        eq(financialEntries.type, "EXPENSE"),
+        isNull(financialEntries.recurringEntryId),
+        isNotNull(financialEntries.amountCents),
+        gte(financialEntries.date, monthDateRange(from).start),
+        lt(financialEntries.date, monthDateRange(to).end),
+      ),
+    )
+    .orderBy(desc(financialEntries.amountCents), desc(financialEntries.date))
+    .limit(limit);
+
+  return rows.map((row) => ({ ...row, amountCents: row.amountCents ?? 0 }));
 }

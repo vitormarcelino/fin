@@ -111,12 +111,22 @@ export function EntryEditModal({ entry, onClose }: { entry: EntryWithTags; onClo
           <SubmitButton />
         </form>
 
-        <Link
-          href={`/entries/${entry.id}/edit`}
-          className="text-center text-sm font-medium text-slate-600 active:opacity-70"
-        >
-          Editar lançamento completo
-        </Link>
+        <div className="flex items-center justify-center gap-6">
+          <Link
+            href={`/entries/${entry.id}/edit`}
+            className="text-center text-sm font-medium text-slate-600 active:opacity-70"
+          >
+            Editar lançamento completo
+          </Link>
+          {entry.recurringEntryId ? (
+            <Link
+              href={`/recurring/${entry.recurringEntryId}`}
+              className="text-center text-sm font-medium text-slate-600 active:opacity-70"
+            >
+              Detalhes
+            </Link>
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -38,6 +38,10 @@ export const entryFormSchema = z.object({
     .max(2000, "As observações devem ter no máximo 2000 caracteres.")
     .optional()
     .transform((v) => (v ? v : undefined)),
+  status: z.preprocess(
+    (val) => (val === null || val === "" ? undefined : val),
+    z.enum(["PENDING", "PAID"], { message: "Selecione pago ou pendente." }).default("PENDING"),
+  ),
   tagIds: z.array(z.string().uuid()).default([]),
   newTagNames: z
     .array(z.string().trim().min(1).max(40))
@@ -65,6 +69,7 @@ export function entryFormDataToInput(formData: FormData) {
     date: formData.get("date"),
     dueDate: formData.get("dueDate"),
     notes: formData.get("notes"),
+    status: formData.get("status"),
     tagIds: formData.getAll("tagIds"),
     newTagNames: formData.getAll("newTagNames"),
   };

@@ -125,3 +125,9 @@ export function addDays(isoDate: string, delta: number): string {
   const nd = String(date.getUTCDate()).padStart(2, "0");
   return `${ny}-${nm}-${nd}`;
 }
+
+export function monthsBetween(from: string, to: string): number {
+  const a = parseMonth(from);
+  const b = parseMonth(to);
+  return (b.year - a.year) * 12 + (b.month - a.month) + 1;
+}

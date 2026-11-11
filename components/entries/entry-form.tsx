@@ -11,6 +11,7 @@ import { TagPicker } from "@/components/entries/tag-picker";
 import { TypeToggle } from "@/components/entries/type-toggle";
 import { ClassificationToggle } from "@/components/entries/classification-toggle";
 import { AmountInput } from "@/components/entries/amount-input";
+import { StatusToggle } from "@/components/entries/status-toggle";
 
 const initialState: EntryActionState = {};
 
@@ -86,6 +87,8 @@ export function EntryForm({ entry, allTags }: { entry?: EntryWithTags; allTags: 
           />
         </div>
       ) : null}
+
+      <StatusToggle defaultValue={entry?.status ?? "PENDING"} />
 
       <TagPicker allTags={allTags} defaultSelectedTagIds={entry?.tags.map((t) => t.id)} />
 

@@ -11,7 +11,7 @@ export function RecurringEntryListItem({ entry }: { entry: RecurringEntryWithTag
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-black/10 p-4 dark:border-white/15">
       <div className="flex items-start justify-between gap-3">
-        <Link href={`/recurring/${entry.id}/edit`} className="flex min-w-0 flex-col gap-1">
+        <Link href={`/recurring/${entry.id}`} className="flex min-w-0 flex-col gap-1">
           <span className="truncate font-medium">{entry.description}</span>
           <span className="truncate text-xs text-foreground/60">
             {isIncome ? "Receita" : "Despesa"} · Todo dia {entry.dueDay} ·{" "}

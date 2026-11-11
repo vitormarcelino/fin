@@ -20,6 +20,7 @@ function revalidateRecurringPaths() {
   revalidatePath("/");
   revalidatePath("/entries");
   revalidatePath("/recurring");
+  revalidatePath("/recurring/[id]", "page");
 }
 
 export async function createRecurringEntry(
